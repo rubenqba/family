@@ -1,0 +1,7 @@
+package com.example.interfell.family.service;
+
+import com.example.interfell.family.model.Relative;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface RelativeRepository extends JpaRepository<Relative, Long> {
+}
