@@ -4,6 +4,7 @@ import com.example.interfell.family.model.Family;
 import com.example.interfell.family.model.Person;
 import com.example.interfell.family.model.Relative;
 import com.example.interfell.family.service.FamilyService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import static org.springframework.data.domain.ExampleMatcher.StringMatcher.START
 
 @RestController
 @RequestMapping("/family")
+@Slf4j
 public class FamilyCtrl {
 
     private static final ExampleMatcher matcher = ExampleMatcher.matching()
@@ -46,33 +48,28 @@ public class FamilyCtrl {
 
     @GetMapping("/{id}")
     public Family getFamily(@PathVariable Long id) {
-        Family like = new Family();
-        like.setId(id);
-        return service.findFamily(Example.of(like))
+        return service.findFamily(id)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("family with id '%d' not found", id)));
     }
 
     @PostMapping("/{family}/rel/{relation}")
-    public void addRelative(Long family, Long relation) {
-        Family like = new Family();
-        like.setId(family);
-        Family f = service.findFamily(Example.of(like))
+    public Family addRelative(@PathVariable Long family, @PathVariable Long relation) {
+        Family f = service.findFamily(family)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("family with id '%d' not found", family)));
 
-        Relative rlike = new Relative();
-        rlike.setId(relation);
-        Relative r = service.findRelative(Example.of(rlike))
-                .orElseThrow(() -> new EntityNotFoundException(String.format("family with id '%d' not found", family)));
+        Relative r = service.findRelative(relation)
+                .orElseThrow(() -> new EntityNotFoundException(String.format("relation with id '%d' not found", family)));
+
+        return service.addRelatives(f, r);
     }
 
     @GetMapping("/{id}/members")
     public Set<Person> getFamilyMembers(@PathVariable Long id) {
-        Family like = new Family();
-        like.setId(id);
-        return service.findFamily(Example.of(like))
+        return service.findFamily(id)
                 .map(f -> f.getRelatives().stream()
                         .map(r -> List.of(r.getOrigin(), r.getDestination()))
                         .flatMap(List::stream)
+                        .peek(p -> log.info("{}", p))
                         .collect(toSet())
                 )
                 .orElseThrow(() -> new EntityNotFoundException(String.format("family with id '%d' not found", id)));

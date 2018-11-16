@@ -8,7 +8,7 @@ import javax.persistence.*;
 @Data
 @Entity
 @Table(name = "rels")
-@EqualsAndHashCode(of = {"principal", "secondary"})
+@EqualsAndHashCode(of = {"origin", "destination"})
 public class Relative {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

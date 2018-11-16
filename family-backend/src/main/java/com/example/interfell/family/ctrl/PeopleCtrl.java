@@ -1,6 +1,7 @@
 package com.example.interfell.family.ctrl;
 
 import com.example.interfell.family.model.Person;
+import com.example.interfell.family.model.PersonRelatives;
 import com.example.interfell.family.model.RelType;
 import com.example.interfell.family.model.Relative;
 import com.example.interfell.family.service.FamilyService;
@@ -10,10 +11,13 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityNotFoundException;
 import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.regex.Pattern;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toSet;
 import static org.springframework.data.domain.ExampleMatcher.StringMatcher.STARTING;
 
 @RestController
@@ -24,6 +28,9 @@ public class PeopleCtrl {
             .withIgnoreNullValues()
             .withIgnoreCase()
             .withStringMatcher(STARTING);
+
+    private static final ExampleMatcher relMatcher = ExampleMatcher.matchingAny()
+            .withIgnoreNullValues();
 
     private static final Pattern timestamp = Pattern.compile("-?[1-9]([0-9]+)?");
 
@@ -41,9 +48,7 @@ public class PeopleCtrl {
 
     @PutMapping("/{id}")
     public Person updatePerson(@PathVariable Long id, @RequestBody Person p) {
-        Person like = new Person();
-        like.setId(id);
-        return service.findPerson(Example.of(like))
+        return service.findPerson(id)
                 .map(found -> {
                     p.setId(found.getId());
                     return service.savePerson(p);
@@ -62,9 +67,7 @@ public class PeopleCtrl {
 
     @GetMapping("/{id}")
     public Person getPeople(@PathVariable Long id) {
-        Person like = new Person();
-        like.setId(id);
-        return service.findPerson(Example.of(like))
+        return service.findPerson(id)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("person with id '%d' not found", id)));
     }
 
@@ -87,21 +90,53 @@ public class PeopleCtrl {
     }
 
     @PostMapping("/{from}/rel/{relation}/{to}")
-    public Relative addRelative(@PathVariable Long from, @PathVariable Long to, @PathVariable RelType relation) {
-        Person like = new Person();
-        like.setId(from);
-
-        Person origin = service.findPerson(Example.of(like))
+    public List<Relative> addRelative(@PathVariable Long from, @PathVariable Long to, @PathVariable RelType relation) {
+        Person origin = service.findPerson(from)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("person with id '%d' not found", from)));
 
-        like.setId(to);
-        Person target = service.findPerson(Example.of(like))
+        Person target = service.findPerson(to)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("person with id '%d' not found", to)));
 
         Relative rel = new Relative();
         rel.setOrigin(origin);
         rel.setType(relation);
         rel.setDestination(target);
-        return service.saveRelative(rel);
+        Relative first = service.saveRelative(rel);
+        if (relation.isBidirectional()) {
+            rel = new Relative();
+            rel.setOrigin(target);
+            rel.setType(relation);
+            rel.setDestination(origin);
+            return List.of(first, service.saveRelative(rel));
+        }
+        return List.of(first);
+    }
+
+    @GetMapping("/{person}/rel")
+    public PersonRelatives relativesOf(@PathVariable Long person) {
+        Person subject = service.findPerson(person)
+                .orElseThrow(() -> new EntityNotFoundException(String.format("person with id '%d' not found", person)));
+
+        List<Relative> relatives = service.findRelatives(subject);
+
+        Map<String, Map<RelType, Set<Person>>> rels = new HashMap<>();
+
+        return PersonRelatives.builder()
+                .relatedWith(relatives.stream()
+                        .filter(r -> r.getType().isBidirectional())
+                        .map(r -> {
+                            if (subject.equals(r.getOrigin()))
+                                return new SimpleEntry<>(r.getType(), r.getDestination());
+                            else
+                                return new SimpleEntry<>(r.getType(), r.getOrigin());
+                        })
+                        .collect(groupingBy(SimpleEntry::getKey, mapping(SimpleEntry::getValue, toSet()))))
+                .relativeOf(relatives.stream()
+                        .filter(r -> !r.getType().isBidirectional() && subject.equals(r.getOrigin()))
+                        .collect(groupingBy(Relative::getType, mapping(Relative::getDestination, toSet()))))
+                .inverseRelativeOf(relatives.stream()
+                        .filter(r -> !r.getType().isBidirectional() && subject.equals(r.getDestination()))
+                        .collect(groupingBy(Relative::getType, mapping(Relative::getOrigin, toSet()))))
+                .build();
     }
 }

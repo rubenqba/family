@@ -2,7 +2,6 @@ package com.example.interfell.family.service.impl;
 
 import com.example.interfell.family.model.Family;
 import com.example.interfell.family.model.Person;
-import com.example.interfell.family.model.RelType;
 import com.example.interfell.family.model.Relative;
 import com.example.interfell.family.service.FamilyRepository;
 import com.example.interfell.family.service.FamilyService;
@@ -41,6 +40,11 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     @Override
+    public Optional<Family> findFamily(Long id) {
+        return families.findById(id);
+    }
+
+    @Override
     public Optional<Family> findFamily(Example<Family> example) {
         return families.findOne(example);
     }
@@ -66,6 +70,11 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     @Override
+    public Optional<Person> findPerson(Long id) {
+        return people.findById(id);
+    }
+
+    @Override
     public Optional<Person> findPerson(Example<Person> example) {
         return people.findOne(example);
     }
@@ -83,6 +92,21 @@ public class FamilyServiceImpl implements FamilyService {
     @Override
     public Relative saveRelative(Relative relative) {
         return relatives.save(relative);
+    }
+
+    @Override
+    public Optional<Relative> findRelative(Long id) {
+        return relatives.findById(id);
+    }
+
+    @Override
+    public Optional<Relative> findRelative(Example<Relative> example) {
+        return relatives.findOne(example);
+    }
+
+    @Override
+    public List<Relative> findRelatives(Person of) {
+        return relatives.findAllByOriginIsOrDestinationIs(of, of, Sort.by("type", "origin", "destination"));
     }
 
     @Override

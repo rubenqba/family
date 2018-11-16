@@ -41,5 +41,6 @@
     <modules>
         <module>auth-server</module>
         <module>family-backend</module>
+        <module>family-ui</module>
     </modules>
 </project>
