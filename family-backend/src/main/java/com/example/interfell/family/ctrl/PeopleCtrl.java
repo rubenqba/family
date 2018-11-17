@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.data.domain.ExampleMatcher.StringMatcher.STARTING;
 
+//@CrossOrigin(origins = "http://localhost:4200", maxAge = 3600)
 @RestController
 @RequestMapping("/people")
 public class PeopleCtrl {

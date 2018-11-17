@@ -17,6 +17,7 @@ import java.util.Set;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.data.domain.ExampleMatcher.StringMatcher.STARTING;
 
+@CrossOrigin(origins = "http://localhost:4200", maxAge = 3600)
 @RestController
 @RequestMapping("/family")
 @Slf4j

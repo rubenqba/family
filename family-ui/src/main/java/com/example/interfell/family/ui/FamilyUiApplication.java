@@ -52,7 +52,7 @@ public class FamilyUiApplication {
                     .antMatchers("/index.html", "/", "/home", "/login").permitAll()
                     .anyRequest().authenticated()
                     .and().csrf()
-                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());;
+                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
         }
     }
 }
